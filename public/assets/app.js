@@ -123,7 +123,100 @@ document.addEventListener('DOMContentLoaded', function () {
     
     // Handler untuk membatasi form "Tambah ke Keranjang" bagi user non-login
     const addToCartForms = document.querySelectorAll('.add-to-cart-form');
+    // Cek apakah user adalah guest dengan cara memeriksa keberadaan tombol login
     const isGuest = document.querySelector('.js-open-auth-modal') !== null;
+
+    addToCartForms.forEach(form => {
+        form.addEventListener('submit', function(event) {
+            event.preventDefault(); // Selalu cegah submit default
+
+            if (isGuest) {
+                // Jika user adalah tamu, tampilkan modal login
+                alert('Anda harus login terlebih dahulu untuk menambahkan item ke keranjang.');
+                // Pastikan fungsi openModal() tersedia
+                if(typeof openModal === 'function') {
+                    openModal();
+                }
+                return;
+            }
+
+            // --- LOGIKA BARU UNTUK USER LOGIN (AJAX & ANIMASI) ---
+            const formData = new FormData(form);
+            const mainImage = document.getElementById('main-product-image');
+            const cartIcon = document.querySelector('a[href*="cart.php"]');
+
+            if (!mainImage || !cartIcon) {
+                console.error('Elemen gambar utama atau ikon keranjang tidak ditemukan.');
+                return;
+            }
+            if (!formData.get('variant_id')) {
+                alert('Silakan pilih ukuran terlebih dahulu.');
+                return;
+            }
+
+            // 1. Buat gambar duplikat untuk animasi
+            const flyingImage = mainImage.cloneNode();
+            flyingImage.style.position = 'fixed';
+            flyingImage.style.left = mainImage.getBoundingClientRect().left + 'px';
+            flyingImage.style.top = mainImage.getBoundingClientRect().top + 'px';
+            flyingImage.style.width = mainImage.offsetWidth + 'px';
+            flyingImage.style.height = mainImage.offsetHeight + 'px';
+            flyingImage.style.zIndex = '9999';
+            flyingImage.style.transition = 'all 1s cubic-bezier(0.5, -0.5, 1, 1)'; // Animasi melengkung
+            flyingImage.style.borderRadius = '50%';
+            flyingImage.style.objectFit = 'cover';
+            document.body.appendChild(flyingImage);
+
+            // 2. Kirim data ke server via AJAX
+            fetch('/Scent-By-Arya/public/ajax_cart_handler.php', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // 3. Mulai animasi terbang
+                    requestAnimationFrame(() => {
+                        const cartRect = cartIcon.getBoundingClientRect();
+                        flyingImage.style.left = cartRect.left + (cartRect.width / 2) + 'px';
+                        flyingImage.style.top = cartRect.top + (cartRect.height / 2) + 'px';
+                        flyingImage.style.width = '0px';
+                        flyingImage.style.height = '0px';
+                        flyingImage.style.opacity = '0';
+                    });
+
+                    // 4. Update badge keranjang
+                    const cartBadge = cartIcon.querySelector('span');
+                    if (cartBadge) {
+                        cartBadge.textContent = data.new_cart_count;
+                        if (data.new_cart_count > 0) {
+                            cartBadge.classList.remove('hidden');
+                        } else {
+                            cartBadge.classList.add('hidden');
+                        }
+                    } else if (data.new_cart_count > 0) {
+                        const newBadge = document.createElement('span');
+                        newBadge.className = 'absolute -top-2 -right-3 bg-red-600 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center';
+                        newBadge.textContent = data.new_cart_count;
+                        cartIcon.appendChild(newBadge);
+                    }
+                } else {
+                    alert(data.message || 'Gagal menambahkan ke keranjang.');
+                    flyingImage.remove(); // Hapus gambar jika gagal
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Terjadi kesalahan koneksi.');
+                flyingImage.remove(); // Hapus gambar jika error
+            });
+
+            // 5. Hapus gambar duplikat setelah animasi selesai
+            setTimeout(() => {
+                flyingImage.remove();
+            }, 1000); // Sesuaikan dengan durasi transisi
+        });
+    });
 
     addToCartForms.forEach(form => {
         form.addEventListener('submit', function(event) {
@@ -195,3 +288,5 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 });
+
+

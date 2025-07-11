@@ -185,7 +185,7 @@ $variants_json = json_encode($product_variants);
                         
                         <!-- Button Tambah ke Keranjang -->
                         <button type="submit" 
-                                id="add-to-cart-btn"
+                                id="add-to-cart-btn" 
                                 class="w-full bg-black text-white font-semibold py-4 px-6 rounded-lg hover:bg-gray-800 transition-colors duration-300 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg"
                                 disabled>
                             Tambah kekeranjang
@@ -201,7 +201,7 @@ $variants_json = json_encode($product_variants);
             <p>&copy; <?php echo date("Y"); ?> ScentByArya. All Rights Reserved.</p>
         </div>
     </footer>
-
+    <script src="assets/app.js"></script>
     <script>
         // Data varian produk dari PHP
         const productVariants = <?php echo $variants_json; ?>;
